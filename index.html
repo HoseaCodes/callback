@@ -49,75 +49,83 @@
     </div>
 
     <script>
-        console.log('Auth callback page loaded');
-        console.log('Full URL:', window.location.href);
+    console.log('Auth callback page loaded');
+    console.log('Full URL:', window.location.href);
+    
+    // Parse URL parameters
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+    const state = urlParams.get('state');
+    const installationId = urlParams.get('installation_id') || 
+                          urlParams.get('configurationId') || 
+                          urlParams.get('config_id');
+    const error = urlParams.get('error');
+    
+    // Log all parameters for debugging
+    console.log('All URL parameters:', Object.fromEntries(urlParams.entries()));
+    
+    const debugInfo = {
+        code: code ? code.substring(0, 10) + '...' : 'missing',
+        state: state ? state.substring(0, 10) + '...' : 'missing',
+        installation_id: installationId || 'missing',
+        error: error || 'none',
+        timestamp: new Date().toISOString(),
+        allParams: Object.fromEntries(urlParams.entries())
+    };
+    
+    console.log('Debug info:', debugInfo);
+    
+    // Handle OAuth error
+    if (error) {
+        document.getElementById('status').innerHTML = `
+            <h1>OAuth Error</h1>
+            <p>Error: ${error}</p>
+            <div class="debug">${JSON.stringify(debugInfo, null, 2)}</div>
+        `;
+    }
+    // Modified check - allow proceeding without installation_id for testing
+    else if (!code || !state) {
+        document.getElementById('status').innerHTML = `
+            <h1>Missing Required Parameters</h1>
+            <p>Code and State are required for OAuth.</p>
+            <div class="debug">${JSON.stringify(debugInfo, null, 2)}</div>
+        `;
+    }
+    // Process callback even if installation_id is missing (for debugging)
+    else {
+        // Update status
+        document.getElementById('status').innerHTML = `
+            <h1>Redirecting to App...</h1>
+            <p>Opening Vercel Manager app...</p>
+            <div class="spinner">⟳</div>
+        `;
         
-        // Parse URL parameters
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = urlParams.get('code');
-        const state = urlParams.get('state');
-        const installationId = urlParams.get('installation_id');
-        const error = urlParams.get('error');
+        // Build app URL - use fallback installation_id if missing
+        const finalInstallationId = installationId || 'temp_installation_id';
+        const appUrl = `vercelmanager://auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&installation_id=${encodeURIComponent(finalInstallationId)}`;
         
-        const debugInfo = {
-            code: code ? code.substring(0, 10) + '...' : 'missing',
-            state: state ? state.substring(0, 10) + '...' : 'missing',
-            installation_id: installationId || 'missing',
-            error: error || 'none',
-            timestamp: new Date().toISOString()
-        };
+        console.log('Attempting to redirect to:', appUrl);
         
-        console.log('Debug info:', debugInfo);
+        // Try to open the app immediately
+        window.location.href = appUrl;
         
-        // Handle OAuth error
-        if (error) {
+        // Show success message after delay
+        setTimeout(function() {
             document.getElementById('status').innerHTML = `
-                <h1>OAuth Error</h1>
-                <p>Error: ${error}</p>
+                <h1>✅ Success!</h1>
+                <p>Authentication completed. Please return to the Vercel Manager app.</p>
+                ${!installationId ? '<p><strong>Note:</strong> installation_id was missing but proceeding with temporary ID for testing.</p>' : ''}
+                <div class="instructions">
+                    <p><strong>If the app didn't open:</strong></p>
+                    <ol>
+                        <li>Switch to the Vercel Manager app manually</li>
+                        <li>Or try this link: <a href="${appUrl}">Open App</a></li>
+                    </ol>
+                </div>
                 <div class="debug">${JSON.stringify(debugInfo, null, 2)}</div>
             `;
-        }
-        // Check required parameters
-        else if (!code || !state || !installationId) {
-            document.getElementById('status').innerHTML = `
-                <h1>Missing Parameters</h1>
-                <p>Required OAuth parameters are missing from the callback.</p>
-                <div class="debug">${JSON.stringify(debugInfo, null, 2)}</div>
-            `;
-        }
-        // Process successful callback
-        else {
-            // Update status
-            document.getElementById('status').innerHTML = `
-                <h1>Redirecting to App...</h1>
-                <p>Opening Vercel Manager app...</p>
-                <div class="spinner">⟳</div>
-            `;
-            
-            // Build app URL
-            const appUrl = `vercelmanager://auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&installation_id=${encodeURIComponent(installationId)}`;
-            
-            console.log('Attempting to redirect to:', appUrl);
-            
-            // Try to open the app immediately
-            window.location.href = appUrl;
-            
-            // Show success message after delay
-            setTimeout(function() {
-                document.getElementById('status').innerHTML = `
-                    <h1>✅ Success!</h1>
-                    <p>Authentication completed. Please return to the Vercel Manager app.</p>
-                    <div class="instructions">
-                        <p><strong>If the app didn't open:</strong></p>
-                        <ol>
-                            <li>Switch to the Vercel Manager app manually</li>
-                            <li>Or try this link: <a href="${appUrl}">Open App</a></li>
-                        </ol>
-                    </div>
-                    <div class="debug">${JSON.stringify(debugInfo, null, 2)}</div>
-                `;
-            }, 3000);
-        }
-    </script>
+        }, 3000);
+    }
+</script>
 </body>
 </html>
