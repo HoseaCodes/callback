@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vercel Manager - Auth Callback</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            text-align: center;
+            line-height: 1.5;
+        }
+        .spinner {
+            font-size: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            margin: 20px;
+        }
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        .debug {
+            background: #f0f0f0;
+            padding: 10px;
+            border-radius: 4px;
+            font-size: 12px;
+            text-align: left;
+            margin-top: 20px;
+            white-space: pre-wrap;
+        }
+        .instructions {
+            background: #f5f5f5;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div id="status">
+        <h1>Processing...</h1>
+        <p>Handling OAuth callback</p>
+        <div class="spinner">⟳</div>
+    </div>
+
+    <script>
+        console.log('Auth callback page loaded');
+        console.log('Full URL:', window.location.href);
+        
+        // Parse URL parameters
+        const urlParams = new URLSearchParams(window.location.search);
+        const code = urlParams.get('code');
+        const state = urlParams.get('state');
+        const installationId = urlParams.get('installation_id');
+        const error = urlParams.get('error');
+        
+        const debugInfo = {
+            code: code ? code.substring(0, 10) + '...' : 'missing',
+            state: state ? state.substring(0, 10) + '...' : 'missing',
+            installation_id: installationId || 'missing',
+            error: error || 'none',
+            timestamp: new Date().toISOString()
+        };
+        
+        console.log('Debug info:', debugInfo);
+        
+        // Handle OAuth error
+        if (error) {
+            document.getElementById('status').innerHTML = `
+                <h1>OAuth Error</h1>
+                <p>Error: ${error}</p>
+                <div class="debug">${JSON.stringify(debugInfo, null, 2)}</div>
+            `;
+        }
+        // Check required parameters
+        else if (!code || !state || !installationId) {
+            document.getElementById('status').innerHTML = `
+                <h1>Missing Parameters</h1>
+                <p>Required OAuth parameters are missing from the callback.</p>
+                <div class="debug">${JSON.stringify(debugInfo, null, 2)}</div>
+            `;
+        }
+        // Process successful callback
+        else {
+            // Update status
+            document.getElementById('status').innerHTML = `
+                <h1>Redirecting to App...</h1>
+                <p>Opening Vercel Manager app...</p>
+                <div class="spinner">⟳</div>
+            `;
+            
+            // Build app URL
+            const appUrl = `vercelmanager://auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&installation_id=${encodeURIComponent(installationId)}`;
+            
+            console.log('Attempting to redirect to:', appUrl);
+            
+            // Try to open the app immediately
+            window.location.href = appUrl;
+            
+            // Show success message after delay
+            setTimeout(function() {
+                document.getElementById('status').innerHTML = `
+                    <h1>✅ Success!</h1>
+                    <p>Authentication completed. Please return to the Vercel Manager app.</p>
+                    <div class="instructions">
+                        <p><strong>If the app didn't open:</strong></p>
+                        <ol>
+                            <li>Switch to the Vercel Manager app manually</li>
+                            <li>Or try this link: <a href="${appUrl}">Open App</a></li>
+                        </ol>
+                    </div>
+                    <div class="debug">${JSON.stringify(debugInfo, null, 2)}</div>
+                `;
+            }, 3000);
+        }
+    </script>
+</body>
+</html>
