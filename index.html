@@ -102,7 +102,7 @@
         
         // Build app URL - use fallback installation_id if missing
         const finalInstallationId = installationId || 'temp_installation_id';
-        const appUrl = `vercelmanager://auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&installation_id=${encodeURIComponent(finalInstallationId)}`;
+        const appUrl = `vctrl://auth/callback?code=${encodeURIComponent(code)}&state=${encodeURIComponent(state)}&installation_id=${encodeURIComponent(finalInstallationId)}`;
         
         console.log('Attempting to redirect to:', appUrl);
         
